@@ -173,6 +173,58 @@ namespace PhoneBook
         }
         private void BtnDelete_Click(object sender, EventArgs e)
         {
+            #region Validation
+            if (string.IsNullOrWhiteSpace(_txtId.Text))
+            {
+                MessageBox.Show("لطفا یک مخاطب را انتخاب کنید",
+                    "خطا",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            DialogResult result = MessageBox.Show("آیا از حذف این مخاطب اطمینان دارید؟",
+                "تأیید حذف",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question);
+
+            if (result != DialogResult.Yes)
+                return; 
+            #endregion
+            try
+            {
+                using (var context = new PhoneBookContext())
+                {
+                    int id = int.Parse(_txtId.Text);
+                    var contact = context.Contacts.Find(id);
+
+                    if (contact != null)
+                    {
+                        context.Contacts.Remove(contact);
+                        context.SaveChanges();
+
+                        MessageBox.Show("مخاطب با موفقیت حذف شد", "موفقیت", 
+                            MessageBoxButtons.OK, 
+                            MessageBoxIcon.Information);
+                        LoadContacts();
+                        ClearForm();
+                    }
+                    else
+                    {
+                        MessageBox.Show("مخاطب یافت نشد", 
+                            "خطا", 
+                            MessageBoxButtons.OK, 
+                            MessageBoxIcon.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطا در حذف مخاطب: {ex.Message}", 
+                    "خطا", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Error);
+            }
         }
         private void BtnClear_Click(object sender, EventArgs e)
         {
