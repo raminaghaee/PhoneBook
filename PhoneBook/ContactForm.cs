@@ -108,6 +108,68 @@ namespace PhoneBook
         }
         private void BtnUpdate_Click(object sender, EventArgs e)
         {
+            if (string.IsNullOrWhiteSpace(_txtId.Text))
+            {
+                MessageBox.Show("لطفا یک مخاطب را انتخاب کنید", "خطا", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_txtName.Text))
+            {
+                MessageBox.Show("لطفا نام را وارد کنید", "خطای اعتبارسنجی", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_txtPhone.Text))
+            {
+                MessageBox.Show("لطفا شماره تلفن را وارد کنید", 
+                    "خطای اعتبارسنجی", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Warning);
+                return;
+            }
+
+            try
+            {
+                using (var context = new PhoneBookContext())
+                {
+                    int id = int.Parse(_txtId.Text);
+                    var contact = context.Contacts.Find(id);
+
+                    if (contact != null)
+                    {
+                        contact.Name = _txtName.Text.Trim();
+                        contact.Phone = _txtPhone.Text.Trim();
+                        contact.Address = _txtAddress.Text.Trim();
+
+                        context.SaveChanges();
+
+                        MessageBox.Show("مخاطب با موفقیت ویرایش شد", 
+                            "موفقیت", 
+                            MessageBoxButtons.OK, 
+                            MessageBoxIcon.Information);
+                        LoadContacts();
+                        ClearForm();
+                    }
+                    else
+                    {
+                        MessageBox.Show("مخاطب یافت نشد", "خطا", 
+                            MessageBoxButtons.OK, 
+                            MessageBoxIcon.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطا در ویرایش مخاطب: {ex.Message}", 
+                    "خطا", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Error);
+            }
         }
         private void BtnDelete_Click(object sender, EventArgs e)
         {
@@ -115,6 +177,22 @@ namespace PhoneBook
         private void BtnClear_Click(object sender, EventArgs e)
         {
             ClearForm();
+        }
+        private void DgvContacts_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex >= 0)
+            {
+                DataGridViewRow row = _dgvContacts.Rows[e.RowIndex];
+                var contact = row.DataBoundItem as Contact;
+
+                if (contact != null)
+                {
+                    _txtId.Text = contact.Id.ToString();
+                    _txtName.Text = contact.Name;
+                    _txtPhone.Text = contact.Phone;
+                    _txtAddress.Text = contact.Address ?? "";
+                }
+            }
         }
         #endregion
     }
