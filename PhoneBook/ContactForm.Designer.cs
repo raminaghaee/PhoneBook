@@ -59,7 +59,7 @@ namespace PhoneBook
                 MultiSelect = false,
                 AutoGenerateColumns = true
             };
-
+            _dgvContacts.CellClick += DgvContacts_CellClick;
             // Add controls
             this.Controls.AddRange(new Control[]
             {
