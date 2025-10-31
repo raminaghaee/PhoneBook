@@ -95,7 +95,7 @@ namespace PhoneBook
                     MessageBox.Show("مخاطب با موفقیت اضافه شد", "موفقیت", 
                         MessageBoxButtons.OK, 
                         MessageBoxIcon.Information);
-
+                    LoadContacts();
                     ClearForm();
                 }
             }
