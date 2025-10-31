@@ -1,6 +1,6 @@
 ﻿using System;
+using System.Linq;
 using System.Windows.Forms;
-using System.Xml.Linq;
 
 namespace PhoneBook
 {
@@ -21,6 +21,7 @@ namespace PhoneBook
         public ContactForm()
         {
             InitializeComponent();
+            LoadContacts();
         } 
         #endregion
         #region UtilityMethods
@@ -30,7 +31,34 @@ namespace PhoneBook
             _txtName.Clear();
             _txtPhone.Clear();
             _txtAddress.Clear();
-        } 
+        }
+        private void LoadContacts()
+        {
+            try
+            {
+                using (var context = new PhoneBookContext())
+                {
+                    var contacts = context.Contacts.ToList();
+                    _dgvContacts.DataSource = contacts;
+
+                    // تنظیم عناوین ستون‌ها
+                    if (_dgvContacts.Columns.Count > 0)
+                    {
+                        _dgvContacts.Columns["Id"].HeaderText = "شناسه";
+                        _dgvContacts.Columns["Name"].HeaderText = "نام";
+                        _dgvContacts.Columns["Phone"].HeaderText = "تلفن";
+                        _dgvContacts.Columns["Address"].HeaderText = "آدرس";
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطا در بارگذاری مخاطبین: {ex.Message}", 
+                    "خطا", 
+                    MessageBoxButtons.OK, 
+                    MessageBoxIcon.Error);
+            }
+        }
         #endregion
         #region Events
         private void BtnCreate_Click(object sender, EventArgs e) 
