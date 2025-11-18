@@ -1,5 +1,10 @@
-﻿using System;
-using System.Linq;
+﻿using PhoneBook.BL;
+using PhoneBook.BL.IRepositories;
+using PhoneBook.BL.Services;
+using PhoneBook.BL.Utilities;
+using PhoneBook.DA.Repositories;
+using System;
+using System.Drawing;
 using System.Windows.Forms;
 
 namespace PhoneBook
@@ -16,15 +21,173 @@ namespace PhoneBook
         private Button _btnUpdate;
         private Button _btnDelete;
         private Button _btnClear;
+        private ContactService _contactService;
         #endregion
         #region Constructor
         public ContactForm()
         {
-            InitializeComponent();
+            // ایجاد وابستگی‌ها
+            IContactRepository repository = new ContactRepository();
+            _contactService = new ContactService(repository);
+
+            InitializeComponents();
             LoadContacts();
-        } 
+        }
         #endregion
         #region UtilityMethods
+        private void InitializeComponents()
+        {
+            this.Text = "دفترچه تلفن - معماری سه لایه";
+            this.Size = new Size(800, 600);
+            this.RightToLeft = RightToLeft.Yes;
+            this.RightToLeftLayout = true;
+
+            // شناسه
+            var lblId = new Label { Text = "شناسه:", Location = new Point(650, 20), AutoSize = true };
+            _txtId = new TextBox { Location = new Point(500, 17), 
+                Width = 130, ReadOnly = true, BackColor = Color.LightGray };
+
+            // نام
+            var lblName = new Label { Text = "نام:", Location = new Point(650, 50), AutoSize = true };
+            _txtName = new TextBox { Location = new Point(500, 47), Width = 130 };
+
+            // تلفن
+            var lblPhone = new Label { Text = "تلفن:", Location = new Point(650, 80), AutoSize = true };
+            _txtPhone = new TextBox { Location = new Point(500, 77), Width = 130 };
+
+            // آدرس
+            var lblAddress = new Label { Text = "آدرس:", Location = new Point(650, 110), AutoSize = true };
+            _txtAddress = new TextBox { Location = new Point(500, 107), 
+                Width = 130, Height = 60, Multiline = true };
+
+            // دکمه‌ها
+            _btnCreate = new Button { Text = "افزودن", Location = new Point(650, 180), Width = 80 };
+            _btnUpdate = new Button { Text = "ویرایش", Location = new Point(560, 180), Width = 80 };
+            _btnDelete = new Button { Text = "حذف", Location = new Point(470, 180), Width = 80 };
+            _btnClear = new Button { Text = "پاک کردن", Location = new Point(380, 180), Width = 80 };
+
+            _btnCreate.Click += (s, e) => CreateContact();
+            _btnUpdate.Click += (s, e) => UpdateContact();
+            _btnDelete.Click += (s, e) => DeleteContact();
+            _btnClear.Click += (s, e) => ClearForm();
+
+            // جدول
+            _dgvContacts = new DataGridView
+            {
+                Location = new Point(20, 220),
+                Size = new Size(740, 320),
+                ReadOnly = true,
+                AllowUserToAddRows = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                MultiSelect = false,
+                AutoGenerateColumns = true
+            };
+            _dgvContacts.CellClick += OnContactSelected;
+
+            // افزودن کنترل‌ها به فرم
+            this.Controls.AddRange(new Control[]
+            {
+                    lblId, _txtId, lblName, _txtName, lblPhone, _txtPhone,
+                    lblAddress, _txtAddress, _btnCreate, _btnUpdate, _btnDelete,
+                    _btnClear, _dgvContacts
+            });
+        }
+
+        private void CreateContact()
+        {
+            var dto = GetContactFromForm();
+            var result = _contactService.CreateContact(dto);
+
+            ShowTlsResult(result);
+
+            if (result.IsSuccess)
+            {
+                LoadContacts();
+                ClearForm();
+            }
+        }
+
+        private void UpdateContact()
+        {
+            var dto = GetContactFromForm();
+            var result = _contactService.UpdateContact(dto);
+
+            ShowTlsResult(result);
+
+            if (result.IsSuccess)
+            {
+                LoadContacts();
+                ClearForm();
+            }
+        }
+
+        private void DeleteContact()
+        {
+            if (string.IsNullOrWhiteSpace(_txtId.Text))
+            {
+                ShowMessage("لطفا یک مخاطب را انتخاب کنید", MessageBoxIcon.Warning);
+                return;
+            }
+
+            var confirmResult = MessageBox.Show(
+                "آیا از حذف این مخاطب اطمینان دارید؟",
+                "تأیید حذف",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question
+            );
+
+            if (confirmResult != DialogResult.Yes)
+                return;
+
+            int id = int.Parse(_txtId.Text);
+            var result = _contactService.DeleteContact(id);
+
+            ShowTlsResult(result);
+
+            if (result.IsSuccess)
+            {
+                LoadContacts();
+                ClearForm();
+            }
+        }
+
+        private void LoadContacts()
+        {
+            try
+            {
+                var contacts = _contactService.GetAllContacts();
+                _dgvContacts.DataSource = contacts;
+
+                if (_dgvContacts.Columns.Count > 0)
+                {
+                    _dgvContacts.Columns["Id"].HeaderText = "شناسه";
+                    _dgvContacts.Columns["Name"].HeaderText = "نام";
+                    _dgvContacts.Columns["Phone"].HeaderText = "تلفن";
+                    _dgvContacts.Columns["Address"].HeaderText = "آدرس";
+                }
+            }
+            catch (Exception ex)
+            {
+                ShowMessage($"خطا در بارگذاری مخاطبین: {ex.Message}", MessageBoxIcon.Error);
+            }
+        }
+
+        private void OnContactSelected(object sender, DataGridViewCellEventArgs e)
+        {
+            if (e.RowIndex < 0) return;
+
+            var row = _dgvContacts.Rows[e.RowIndex];
+            var contact = row.DataBoundItem as ContactDto;
+
+            if (contact != null)
+            {
+                _txtId.Text = contact.Id.ToString();
+                _txtName.Text = contact.Name;
+                _txtPhone.Text = contact.Phone;
+                _txtAddress.Text = contact.Address;
+            }
+        }
+
         private void ClearForm()
         {
             _txtId.Clear();
@@ -32,219 +195,27 @@ namespace PhoneBook
             _txtPhone.Clear();
             _txtAddress.Clear();
         }
-        private void LoadContacts()
-        {
-            try
-            {
-                using (var context = new PhoneBookContext())
-                {
-                    var contacts = context.Contacts.ToList();
-                    _dgvContacts.DataSource = contacts;
 
-                    // تنظیم عناوین ستون‌ها
-                    if (_dgvContacts.Columns.Count > 0)
-                    {
-                        _dgvContacts.Columns["Id"].HeaderText = "شناسه";
-                        _dgvContacts.Columns["Name"].HeaderText = "نام";
-                        _dgvContacts.Columns["Phone"].HeaderText = "تلفن";
-                        _dgvContacts.Columns["Address"].HeaderText = "آدرس";
-                    }
-                }
-            }
-            catch (Exception ex)
+        private ContactDto GetContactFromForm()
+        {
+            return new ContactDto
             {
-                MessageBox.Show($"خطا در بارگذاری مخاطبین: {ex.Message}", 
-                    "خطا", 
-                    MessageBoxButtons.OK, 
-                    MessageBoxIcon.Error);
-            }
+                Id = string.IsNullOrWhiteSpace(_txtId.Text) ? 0 : int.Parse(_txtId.Text),
+                Name = _txtName.Text,
+                Phone = _txtPhone.Text,
+                Address = _txtAddress.Text
+            };
         }
-        #endregion
-        #region Events
-        private void BtnCreate_Click(object sender, EventArgs e) 
+
+        private void ShowTlsResult(TlsResult result)
         {
-            if (string.IsNullOrWhiteSpace(_txtName.Text))
-            {
-                MessageBox.Show("لطفا نام را وارد کنید", 
-                    "خطای اعتبارسنجی", 
-                    MessageBoxButtons.OK, 
-                    MessageBoxIcon.Warning);
-                return;
-            }
-            if (string.IsNullOrWhiteSpace(_txtPhone.Text))
-            {
-                MessageBox.Show("لطفا شماره تلفن را وارد کنید", 
-                    "خطای اعتبارسنجی", MessageBoxButtons.OK, 
-                    MessageBoxIcon.Warning);
-                return;
-            }
-            try
-            {
-                using (var context = new PhoneBookContext())
-                {
-                    var contact = new Contact
-                    {
-                        Name = _txtName.Text.Trim(),
-                        Phone = _txtPhone.Text.Trim(),
-                        Address = _txtAddress.Text.Trim()
-                    };
-
-                    context.Contacts.Add(contact);
-                    context.SaveChanges();
-
-                    MessageBox.Show("مخاطب با موفقیت اضافه شد", "موفقیت", 
-                        MessageBoxButtons.OK, 
-                        MessageBoxIcon.Information);
-                    LoadContacts();
-                    ClearForm();
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"خطا در افزودن مخاطب: {ex.Message}", 
-                    "خطا", MessageBoxButtons.OK, 
-                    MessageBoxIcon.Error);
-            }
+            var icon = result.IsSuccess ? MessageBoxIcon.Information : MessageBoxIcon.Warning;
+            ShowMessage(result.Message, icon);
         }
-        private void BtnUpdate_Click(object sender, EventArgs e)
+
+        private void ShowMessage(string message, MessageBoxIcon icon)
         {
-            if (string.IsNullOrWhiteSpace(_txtId.Text))
-            {
-                MessageBox.Show("لطفا یک مخاطب را انتخاب کنید", "خطا", 
-                    MessageBoxButtons.OK, 
-                    MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_txtName.Text))
-            {
-                MessageBox.Show("لطفا نام را وارد کنید", "خطای اعتبارسنجی", 
-                    MessageBoxButtons.OK, 
-                    MessageBoxIcon.Warning);
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(_txtPhone.Text))
-            {
-                MessageBox.Show("لطفا شماره تلفن را وارد کنید", 
-                    "خطای اعتبارسنجی", 
-                    MessageBoxButtons.OK, 
-                    MessageBoxIcon.Warning);
-                return;
-            }
-
-            try
-            {
-                using (var context = new PhoneBookContext())
-                {
-                    int id = int.Parse(_txtId.Text);
-                    var contact = context.Contacts.Find(id);
-
-                    if (contact != null)
-                    {
-                        contact.Name = _txtName.Text.Trim();
-                        contact.Phone = _txtPhone.Text.Trim();
-                        contact.Address = _txtAddress.Text.Trim();
-
-                        context.SaveChanges();
-
-                        MessageBox.Show("مخاطب با موفقیت ویرایش شد", 
-                            "موفقیت", 
-                            MessageBoxButtons.OK, 
-                            MessageBoxIcon.Information);
-                        LoadContacts();
-                        ClearForm();
-                    }
-                    else
-                    {
-                        MessageBox.Show("مخاطب یافت نشد", "خطا", 
-                            MessageBoxButtons.OK, 
-                            MessageBoxIcon.Error);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"خطا در ویرایش مخاطب: {ex.Message}", 
-                    "خطا", 
-                    MessageBoxButtons.OK, 
-                    MessageBoxIcon.Error);
-            }
-        }
-        private void BtnDelete_Click(object sender, EventArgs e)
-        {
-            #region Validation
-            if (string.IsNullOrWhiteSpace(_txtId.Text))
-            {
-                MessageBox.Show("لطفا یک مخاطب را انتخاب کنید",
-                    "خطا",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-                return;
-            }
-
-            DialogResult result = MessageBox.Show("آیا از حذف این مخاطب اطمینان دارید؟",
-                "تأیید حذف",
-                MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question);
-
-            if (result != DialogResult.Yes)
-                return; 
-            #endregion
-            try
-            {
-                using (var context = new PhoneBookContext())
-                {
-                    int id = int.Parse(_txtId.Text);
-                    var contact = context.Contacts.Find(id);
-
-                    if (contact != null)
-                    {
-                        context.Contacts.Remove(contact);
-                        context.SaveChanges();
-
-                        MessageBox.Show("مخاطب با موفقیت حذف شد", "موفقیت", 
-                            MessageBoxButtons.OK, 
-                            MessageBoxIcon.Information);
-                        LoadContacts();
-                        ClearForm();
-                    }
-                    else
-                    {
-                        MessageBox.Show("مخاطب یافت نشد", 
-                            "خطا", 
-                            MessageBoxButtons.OK, 
-                            MessageBoxIcon.Error);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"خطا در حذف مخاطب: {ex.Message}", 
-                    "خطا", 
-                    MessageBoxButtons.OK, 
-                    MessageBoxIcon.Error);
-            }
-        }
-        private void BtnClear_Click(object sender, EventArgs e)
-        {
-            ClearForm();
-        }
-        private void DgvContacts_CellClick(object sender, DataGridViewCellEventArgs e)
-        {
-            if (e.RowIndex >= 0)
-            {
-                DataGridViewRow row = _dgvContacts.Rows[e.RowIndex];
-                var contact = row.DataBoundItem as Contact;
-
-                if (contact != null)
-                {
-                    _txtId.Text = contact.Id.ToString();
-                    _txtName.Text = contact.Name;
-                    _txtPhone.Text = contact.Phone;
-                    _txtAddress.Text = contact.Address ?? "";
-                }
-            }
+            MessageBox.Show(message, "پیام", MessageBoxButtons.OK, icon);
         }
         #endregion
     }

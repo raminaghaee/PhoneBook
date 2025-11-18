@@ -89,6 +89,16 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\PhoneBook.BL\PhoneBook.BL.csproj">
+      <Project>{9c8ae6fb-73b5-4afe-b25f-d8d8e3956243}</Project>
+      <Name>PhoneBook.BL</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\PhoneBook.DA\PhoneBook.DA.csproj">
+      <Project>{03ab29b7-dbb1-4393-b027-e9c97c19915d}</Project>
+      <Name>PhoneBook.DA</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">
     <PropertyGroup>

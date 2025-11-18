@@ -50,11 +50,5 @@
     <Compile Include="Utilities\TlsResult.cs" />
   </ItemGroup>
   <ItemGroup />
-  <ItemGroup>
-    <ProjectReference Include="..\PhoneBook\PhoneBook.UI.csproj">
-      <Project>{3c34cf78-bb8a-4a5d-9ee8-a1c6d9068bca}</Project>
-      <Name>PhoneBook.UI</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
