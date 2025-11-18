@@ -1,4 +1,4 @@
-﻿using PhoneBook.BL.Models;
+﻿using PhoneBook.BL;
 using System.Data.Entity;
 
 namespace PhoneBook.DA
