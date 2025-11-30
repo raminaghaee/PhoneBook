@@ -5,6 +5,7 @@ using PhoneBook.BL.Utilities;
 using PhoneBook.DA.Repositories;
 using System;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace PhoneBook
@@ -74,16 +75,27 @@ namespace PhoneBook
             // جدول
             _dgvContacts = new DataGridView
             {
-                Location = new Point(20, 220),
-                Size = new Size(740, 320),
+                Location = new Point(20, 250),
+                Size = new Size(790, 300),
                 ReadOnly = true,
                 AllowUserToAddRows = false,
                 SelectionMode = DataGridViewSelectionMode.FullRowSelect,
                 MultiSelect = false,
                 AutoGenerateColumns = true
             };
-            _dgvContacts.CellClick += OnContactSelected;
+           
 
+            // ستون CheckBox برای انتخاب - اولین ستون
+            var checkBoxColumn = new DataGridViewCheckBoxColumn
+            {
+                Name = "IsSelected",
+                HeaderText = "انتخاب",
+                DataPropertyName = "IsSelected",
+                Width = 60,
+                ReadOnly = false  
+            };
+            _dgvContacts.Columns.Add(checkBoxColumn);
+            _dgvContacts.CellClick += OnContactSelected;
             // افزودن کنترل‌ها به فرم
             this.Controls.AddRange(new Control[]
             {
@@ -92,7 +104,6 @@ namespace PhoneBook
                     _btnClear, _dgvContacts
             });
         }
-
         private void CreateContact()
         {
             var dto = GetContactFromForm();
@@ -176,8 +187,25 @@ namespace PhoneBook
         {
             if (e.RowIndex < 0) return;
 
-            var row = _dgvContacts.Rows[e.RowIndex];
+            var allRows = _dgvContacts.Rows;
+            var row = allRows[e.RowIndex];
             var contact = row.DataBoundItem as ContactDto;
+
+            if (contact == null) return;
+
+            // اگر روی ستون IsSelected کلیک شد
+            if (e.ColumnIndex >= 0 && _dgvContacts.Columns[e.ColumnIndex].Name == "IsSelected")
+            {
+                // ابتدا همه رکوردها را Unselect کن
+                foreach (DataGridViewRow c in allRows)
+                {
+                    (c.DataBoundItem as ContactDto).IsSelected = false;
+                }
+
+                // فقط رکورد کلیک شده را Select کن
+                contact.IsSelected = true;
+                _dgvContacts.Refresh();
+            }
 
             if (contact != null)
             {
@@ -203,7 +231,8 @@ namespace PhoneBook
                 Id = string.IsNullOrWhiteSpace(_txtId.Text) ? 0 : int.Parse(_txtId.Text),
                 Name = _txtName.Text,
                 Phone = _txtPhone.Text,
-                Address = _txtAddress.Text
+                Address = _txtAddress.Text,
+                IsSelected = false
             };
         }
 
